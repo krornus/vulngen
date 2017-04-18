@@ -1,0 +1,73 @@
+<define KEYWORDS ("rand" "while" "do" "inc" "dec" "body" "head" "post" "pre" "int" "long") />
+<define PARSE CODE.Start />
+
+<code Block pars=(block)>
+@block@;
+
+</code>
+
+<code InducingLoop pars=(pre, loop, post)>
+    @pre@ 
+    @loop@
+    @post@
+</code>
+
+<code While pars=(bool, body)>
+while (@bool@) {
+    @body@
+}
+</code>
+
+<code Do pars=(bool, body)>
+do {
+    @body@
+} while(@bool@);
+</code>
+
+<code SetIndex pars=(type, src, dst, idx)>
+*(@type@ *)(@src@ + @idx@) = *(@type@ *)(@dst@ + @idx@) 
+</code>
+
+<code RandomLogic pars=(pre)>
+@pre@
+fprintf(stderr, "unimplimented\n"); 
+</code>
+
+<code Start parse=(
+     (CODE.RandomOptions CODE.Vulnerable CODE.RandomOptions)
+)/>
+
+<code RandomOptions parse=(
+     ("rand" CODE.RandomOptions) 
+    | ""
+)/>
+
+<code Vulnerable parse=(
+      (CODE.Cast eval(DEBUG{CastType};) CODE.LoopType CODE.Direction CODE.Position)
+)/>
+
+<code Cast parse=(
+      ("int"  ((t=CODE.Cast eval(CastType = CastType ^ "int "; return t)) | (CODE.CastCheck CODE.RandomOptions))) 
+    | ("long" ((t=CODE.Cast eval(CastType = CastType ^ "long "; return t)) | (CODE.CastCheck CODE.RandomOptions)))
+)/>
+
+<code CastCheck parse=(
+      ("true")
+    | ("false")
+)/>
+
+<code LoopType parse=(
+      ("while" CODE.RandomOptions) 
+    | ("do" CODE.RandomOptions)
+)/>
+
+<code Direction parse=(
+      ("inc" CODE.RandomOptions) 
+    | ("dec" CODE.RandomOptions)
+)/>
+
+<code Position parse=(
+      ("head" CODE.RandomOptions) 
+    | ("body" "pre" CODE.RandomOptions) 
+    | ("body" "post" CODE.RandomOptions)
+)/>
