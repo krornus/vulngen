@@ -7,9 +7,9 @@ import tensorflow as tf
 import random
 from sklearn.externals import joblib
 from sklearn.pipeline import Pipeline
-from processing_pipeline import OneHotEncoder
-from processing_pipeline import RemoveComments
+from processing_pipeline import OneHotEncoder, RemoveSpace, RemoveComments
 import network_config as config
+import pandas as pd
 
 def batch(X, time_steps=100, batch_size=128, batch_count=20000):
 	ids = range(data.shape[0]-time_steps-1)
@@ -22,9 +22,11 @@ def batch(X, time_steps=100, batch_size=128, batch_count=20000):
 			y_batch[i, :, :] = data[data_id+1:data_id+1+time_steps]
 		yield X_batch, y_batch
 
+
 data_dir = os.environ['RAND_LOGIC_DATA']
 file_extensions = set(['c', 'C'])
 files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(data_dir) for f in filenames if f.split('.')[-1] in file_extensions]
+print("File count = {}".format(len(files)))
 data = ""
 for file in files:
 	with open(file, 'r') as f:
@@ -36,6 +38,7 @@ for file in files:
 
 pipeline = Pipeline([
 		("remove_comments", RemoveComments()),
+		("remove_space", RemoveSpace()),
 		("one_hot_encode", OneHotEncoder()),
 		])
 
@@ -60,6 +63,8 @@ with tf.Session() as sess:
 	for step, [X_batch, y_batch] in enumerate(batch(
 			data, config.time_steps, config.batch_size, 
 			batch_count=config.num_train_batches)):
+		if step % 1000 == 0:
+			saver.save(sess, "saved/model.ckpt")
 		cost = net.train_batch(X_batch, y_batch)
 		print('Step {} Cost = {}'.format(step, cost))
 

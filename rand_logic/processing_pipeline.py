@@ -40,3 +40,16 @@ class RemoveComments(BaseEstimator, TransformerMixin):
 	def transform(self, X):
 		return re.sub(r"(/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)|(//.*)", '', X)
 
+class RemoveSpace(BaseEstimator, TransformerMixin):
+	def __init__(self):
+		pass
+
+	def fit(self, X, y=None):
+		return self
+
+	def fit_transform(self, X, y=None, **fit_params):
+		self.fit(X, y, **fit_params)
+		return self.transform(X)
+
+	def transform(self, X):
+		return X.replace(' ', '')
