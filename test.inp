@@ -1,9 +1,8 @@
 rand
-int long long false
-do
-dec
-rand
-rand
-body
-pre
+char 32 24 
+while pre inc {
+    rand
+    set
+    rand
+}
 rand

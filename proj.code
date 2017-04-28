@@ -1,73 +1,152 @@
-<define KEYWORDS ("rand" "while" "do" "inc" "dec" "body" "head" "post" "pre" "int" "long") />
+<define KEYWORDS (
+    "rand"
+    "while"
+    "do"
+    "inc"
+    "dec"
+    "body"
+    "set"
+    "head"
+    "post"
+    "pre"
+    "int"
+    "char"
+    "long")/>
+
 <define PARSE CODE.Start />
+<code IntDir pars=(next, cmp)/>
+<code LoopBody pars=(r1, r2)/>
 
-<code Block pars=(block)>
-@block@;
+<code BufferInfo pars=(type, slen, dlen)/>
 
+<code DoLoop pars=(cmp, body)>
+do {
+    @body@
+} while(@cmp@);
 </code>
 
-<code InducingLoop pars=(pre, loop, post)>
-    @pre@ 
-    @loop@
-    @post@
-</code>
-
-<code While pars=(bool, body)>
-while (@bool@) {
+<code WhileLoop pars=(cmp, body)>
+while (@cmp@) {
     @body@
 }
 </code>
 
-<code Do pars=(bool, body)>
-do {
-    @body@
-} while(@bool@);
+<code Rand> 
+random
+
 </code>
 
-<code SetIndex pars=(type, src, dst, idx)>
-*(@type@ *)(@src@ + @idx@) = *(@type@ *)(@dst@ + @idx@) 
+<code BinaryOp pars=(a, op, b)>
+@a@ @op@ @b@
 </code>
 
-<code RandomLogic pars=(pre)>
-@pre@
-fprintf(stderr, "unimplimented\n"); 
+<code Index pars=(buf, type, i)>
+*((@type@ *)@buf@ + @i@)
 </code>
 
-<code Start parse=(
-     (CODE.RandomOptions CODE.Vulnerable CODE.RandomOptions)
-)/>
+<code Sequence pars=(a,b)>
+@a@@b@
+</code>
 
-<code RandomOptions parse=(
-     ("rand" CODE.RandomOptions) 
-    | ""
-)/>
+<code Display pars=(a)>
+@a@
+</code>
 
-<code Vulnerable parse=(
-      (CODE.Cast eval(DEBUG{CastType};) CODE.LoopType CODE.Direction CODE.Position)
-)/>
+<code DisplayLine pars=(a)>
+@a@
 
-<code Cast parse=(
-      ("int"  ((t=CODE.Cast eval(CastType = CastType ^ "int "; return t)) | (CODE.CastCheck CODE.RandomOptions))) 
-    | ("long" ((t=CODE.Cast eval(CastType = CastType ^ "long "; return t)) | (CODE.CastCheck CODE.RandomOptions)))
-)/>
+</code>
 
-<code CastCheck parse=(
-      ("true")
-    | ("false")
-)/>
+<code DeclareArray pars=(type, name, len)>
+@type@ @name@[@len@]
+</code>
 
-<code LoopType parse=(
-      ("while" CODE.RandomOptions) 
-    | ("do" CODE.RandomOptions)
-)/>
+<code Declare pars=(type, name)>
+@type@ @name@
+</code>
 
+<code Block pars=(a)>
+@a@;
+
+</code>
+<code Program pars=(pre, loop, post)>
+#include <stdio.h>
+#include <string.h>
+
+int main(int argc, char **argv)
+{
+    @pre@
+    /* START VULNERABILITY */
+    @loop@
+    /* END VULNERABILITY */
+    @post@
+}
+
+</code>
+
+<code Start parse=((pre=CODE.RandomOptions loop=CODE.Vulnerable post=CODE.RandomOptions eval(return(Program#(pre, loop, post)))))/>
+<code RandomOptions parse=(("rand" (r=CODE.RandomOptions) eval(
+    if (r) { 
+        return CODE.Sequence#(CODE.Rand, r);
+    } else { 
+        return CODE.Rand
+    }
+)) | "" )/>
+
+<code Vulnerable parse=(((v=CODE.DataType) (slen=INT) (dlen=INT) eval(BufferInfo#(v, slen, dlen)) (loop=CODE.LoopSection) eval(return loop)))/>
+
+<code DataType parse=(
+      ("char" eval(return CODE.Display#("char")))
+    | ("int" eval(return CODE.Display#("int")))
+    | ("long" eval(return CODE.Display#("long"))))/>
+
+
+<code LoopSection parse=(((type=CODE.LoopType) (pos=CODE.Position) (dir=CODE.Direction) (s=CODE.Section)) 
+    eval(
+        set = CODE.BinaryOp#(
+            CODE.DisplayLine#("/* START BUFFER SET */"), 
+            CODE.Block#(CODE.BinaryOp#(
+                CODE.Index#(DestBuffer, INHERIT[BufferInfo.type], Counter), 
+                "=", 
+                CODE.Index#(SourceBuffer, INHERIT[BufferInfo.type], Counter))), 
+            CODE.DisplayLine#("/* END BUFFER SET */"));
+
+        if (pos == "pre") {
+            body = CODE.Sequence#(CODE.Block#(dir[IntDir.next]), s[LoopBody.r1]);
+            body = CODE.Sequence#(body, set);
+            body = CODE.Sequence#(body, s[LoopBody.r2]);
+        }
+        else {
+            body = CODE.Sequence#(s[LoopBody.r2], CODE.Block#(dir[IntDir.next]));
+            body = CODE.Sequence#(s[LoopBody.r1], set);
+            body = CODE.Sequence#(body, set);
+        }
+
+        if (type == "do") {
+            loop = CODE.DoLoop#(dir[IntDir.cmp], body);
+        }
+        else if (type == "while") {
+            loop = CODE.WhileLoop#(dir[IntDir.cmp], body) 
+        }
+
+        
+        decl = CODE.Sequence#(
+            Block#(DeclareArray#(INHERIT[BufferInfo.type], SourceBuffer, INHERIT[BufferInfo.slen])),
+            Block#(DeclareArray#(INHERIT[BufferInfo.type], DestBuffer, INHERIT[BufferInfo.dlen])));
+        decl = CODE.Sequence#(Block#(Declare#("int", Counter)), decl);
+        
+        return CODE.Sequence#(decl, loop);
+))/>
+<code LoopType parse=(("while") | ("do"))/>
+<code Position parse=("pre" | "post")/>
 <code Direction parse=(
-      ("inc" CODE.RandomOptions) 
-    | ("dec" CODE.RandomOptions)
-)/>
-
-<code Position parse=(
-      ("head" CODE.RandomOptions) 
-    | ("body" "pre" CODE.RandomOptions) 
-    | ("body" "post" CODE.RandomOptions)
-)/>
+      ("inc" eval(
+        return IntDir#(Counter^"++", BinaryOp#(Counter, "<", "strlen("^SourceBuffer^")"))
+      ))
+    | ("dec" eval(
+        return IntDir#(Counter^"--", BinaryOp#(Counter, ">", "-1"))
+      ))
+    | ("ptr") eval(
+        return IntDir#(Counter^"++", BinaryOp#(SourceBuffer^"["^Counter^"]", "!=", "NULL"))
+      ))/>
+<code Section parse=(("{" (r1=CODE.RandomOptions) "set" (r2=CODE.RandomOptions) "}" eval(return CODE.LoopBody#(r1,r2))))/>

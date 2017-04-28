@@ -1,5 +1,6 @@
-<define CastType ""/>
-<define Incrementer INT/>
-<define SourceBuffer "src"/>
-<define DestBuffer "dst"/>
-<input syntax="proj.code" from="" to=input/>
+<input syntax="proj.code" from="" to=ast/>
+<output from=(ast) syntax="proj.code"/>
+
+<define Counter "a"/>
+<define SourceBuffer "b"/>
+<define DestBuffer "c"/>
