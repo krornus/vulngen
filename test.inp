@@ -1,6 +1,6 @@
 rand
 char 32 24 
-while pre inc {
+do pre ptr {
     rand
     set
     rand
