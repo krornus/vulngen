@@ -24,6 +24,7 @@ def batch(X, time_steps=100, batch_size=128, batch_count=20000):
 
 
 data_dir = os.environ['RAND_LOGIC_DATA']
+print(data_dir)
 file_extensions = set(['c', 'C'])
 files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(data_dir) for f in filenames if f.split('.')[-1] in file_extensions]
 print("File count = {}".format(len(files)))
@@ -36,9 +37,10 @@ for file in files:
 				continue
 			data += line
 
+print(data)
 pipeline = Pipeline([
-		("remove_comments", RemoveComments()),
-		("remove_space", RemoveSpace()),
+		#("remove_comments", RemoveComments()),
+		#("remove_space", RemoveSpace()),
 		("one_hot_encode", OneHotEncoder()),
 		])
 
