@@ -92,6 +92,7 @@ random
 
 int main(int argc, char **argv)
 {
+    variables
     @pre@
     /* START VULNERABILITY */
     @loop@
